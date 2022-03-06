@@ -1,0 +1,21 @@
+{
+    "schemaVersion": 1,
+    "id": "ismpbackup",
+    "version": "${version}",
+    "name": "iSMPBackup",
+    "description": "Map Backup Helper",
+    "authors": [
+        "SteveKunG"
+    ],
+    "license": "All rights reserved",
+    "environment": "server",
+    "entrypoints": {
+        "server": [
+            "com.stevekung.ismpbackup.ISMPBackup"
+        ]
+    },
+    "depends": {
+        "fabricloader": ">=0.13.3",
+        "minecraft": ">=1.18.2"
+    }
+}

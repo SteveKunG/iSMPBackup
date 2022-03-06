@@ -1,0 +1,62 @@
+plugins {
+    id "fabric-loom" version "0.11-SNAPSHOT"
+}
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+archivesBaseName = project.archives_base_name
+version = project.mod_version
+group = project.maven_group
+
+loom {
+    runs {
+        client {
+            programArgs "--username", "${username}", "--uuid", "${uuid}"
+            vmArg "-Dmixin.debug.export=true"
+            vmArg "-Dmixin.hotSwap=true"
+        }
+    }
+}
+
+repositories {
+    maven {
+        name "ParchmentMC"
+        url "https://maven.parchmentmc.org"
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.layered() {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${rootProject.parchmentmc_version}@zip")
+    }
+
+    implementation(include("com.google.api-client:google-api-client:1.33.0"))
+    implementation(include("com.google.oauth-client:google-oauth-client-jetty:1.32.1"))
+    implementation(include("com.google.apis:google-api-services-drive:v3-rev20211107-1.32.1"))
+
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+}
+
+String fileName = "${archives_base_name}-mc${minecraft_version}"
+
+remapJar {
+    archiveVersion = "v${project.version}"
+    archiveBaseName = fileName
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 17
+}

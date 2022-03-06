@@ -1,0 +1,59 @@
+package com.stevekung.ismpbackup;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+
+public class ISMPBackup implements DedicatedServerModInitializer
+{
+    private static final ScheduledExecutorService BACKUP_SCHEDULE = Executors.newScheduledThreadPool(1);
+
+    @Override
+    public void onInitializeServer()
+    {
+        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) ->
+        {
+            IBackupCommand.register(dispatcher);
+        });
+
+        ServerLifecycleEvents.SERVER_STARTING.register(server ->
+        {
+            DriveAPI.CREDENTIALS = new File(server.getServerDirectory(), "credentials.json");
+
+            try
+            {
+                DriveAPI.init();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        });
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server ->
+        {
+            BACKUP_SCHEDULE.scheduleAtFixedRate(() ->
+            {
+                var date = new Date();
+                var zdt = date.toInstant().atZone(ZoneId.of("Asia/Bangkok"));
+                var saturday = zdt.getDayOfWeek() == DayOfWeek.SATURDAY;
+                var midnight = zdt.getHour() == 0;
+
+                if (saturday && midnight)
+                {
+                    BackupUtils.upload(server, BackupUtils.backup(server, false));
+                }
+            },
+            5L, TimeUnit.SECONDS.convert(1, TimeUnit.DAYS), TimeUnit.SECONDS);
+        });
+    }
+}
