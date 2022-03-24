@@ -30,12 +30,12 @@ dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered() {
         officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${rootProject.parchmentmc_version}@zip")
+        parchment("org.parchmentmc.data:parchment-${parchmentmc_version}@zip")
     }
 
-    implementation(include("com.google.api-client:google-api-client:1.33.0"))
-    implementation(include("com.google.oauth-client:google-oauth-client-jetty:1.32.1"))
-    implementation(include("com.google.apis:google-api-services-drive:v3-rev20211107-1.32.1"))
+    implementation(include("com.google.api-client:google-api-client:${api_client_version}"))
+    implementation(include("com.google.oauth-client:google-oauth-client-jetty:${oauth_client_version}"))
+    implementation(include("com.google.apis:google-api-services-drive:${drive_api_version}"))
 
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
