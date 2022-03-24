@@ -61,5 +61,7 @@ public class ISMPBackup implements DedicatedServerModInitializer
             },
             5L, TimeUnit.SECONDS.convert(1, TimeUnit.DAYS), TimeUnit.SECONDS);
         });
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> BACKUP_SCHEDULE.shutdownNow());
     }
 }
