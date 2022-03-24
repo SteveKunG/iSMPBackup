@@ -26,6 +26,11 @@ repositories {
     }
 }
 
+configurations {
+    drive
+    implementation.extendsFrom drive
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered() {
@@ -33,15 +38,53 @@ dependencies {
         parchment("org.parchmentmc.data:parchment-${parchmentmc_version}@zip")
     }
 
-    implementation(include("com.google.api-client:google-api-client:${api_client_version}"))
-    implementation(include("com.google.oauth-client:google-oauth-client-jetty:${oauth_client_version}"))
-    implementation(include("com.google.apis:google-api-services-drive:${drive_api_version}"))
+    drive (group: "com.google.api-client", name: "google-api-client", version: project.api_client_version) {
+        exclude(group: "org.apache.httpcomponents")
+        exclude(group: "commons-logging")
+        exclude(group: "commons-codec")
+        exclude(group: "com.google.guava")
+        exclude(group: "com.google.code.gson")
+        exclude(group: "com.google.code.findbugs")
+        exclude(group: "com.google.errorprone")
+        exclude(group: "com.google.j2objc")
+        exclude(group: "org.checkerframework")
+    }
+    drive (group: "com.google.oauth-client", name: "google-oauth-client-jetty", version: project.oauth_client_version) {
+        exclude(group: "org.apache.httpcomponents")
+        exclude(group: "commons-logging")
+        exclude(group: "commons-codec")
+        exclude(group: "com.google.guava")
+        exclude(group: "com.google.code.gson")
+        exclude(group: "com.google.code.findbugs")
+        exclude(group: "com.google.errorprone")
+        exclude(group: "com.google.j2objc")
+        exclude(group: "org.checkerframework")
+    }
+    drive (group: "com.google.apis", name: "google-api-services-drive", version: project.drive_api_version) {
+        exclude(group: "org.apache.httpcomponents")
+        exclude(group: "commons-logging")
+        exclude(group: "commons-codec")
+        exclude(group: "com.google.guava")
+        exclude(group: "com.google.code.gson")
+        exclude(group: "com.google.code.findbugs")
+        exclude(group: "com.google.errorprone")
+        exclude(group: "com.google.j2objc")
+        exclude(group: "org.checkerframework")
+    }
 
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 }
 
 String fileName = "${archives_base_name}-mc${minecraft_version}"
+
+jar {
+    from configurations.drive.collect {
+        it.isDirectory() ? it : zipTree(it)
+    }
+    excludes = ["drive.v3.json", "META-INF/proguard/**", "META-INF/maven/**"]
+    duplicatesStrategy DuplicatesStrategy.INCLUDE
+}
 
 remapJar {
     archiveVersion = "v${project.version}"
