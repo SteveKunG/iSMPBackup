@@ -23,6 +23,8 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.mojang.logging.LogUtils;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 public class DriveAPI
 {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -54,7 +56,7 @@ public class DriveAPI
     private static Credential getCredentials() throws IOException
     {
         var clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(new FileInputStream(CREDENTIALS)));
-        var flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, Collections.singletonList(DriveScopes.DRIVE_FILE)).setDataStoreFactory(new FileDataStoreFactory(new File("tokens"))).setAccessType("online").build();
+        var flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, Collections.singletonList(DriveScopes.DRIVE_FILE)).setDataStoreFactory(new FileDataStoreFactory(new File(FabricLoader.getInstance().getConfigDir().toFile(), "ismpbackup"))).setAccessType("offline").build();
         var receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         var credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
         return credential;

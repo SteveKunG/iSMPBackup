@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 
 public class ISMPBackup implements DedicatedServerModInitializer
 {
@@ -27,7 +28,12 @@ public class ISMPBackup implements DedicatedServerModInitializer
 
         ServerLifecycleEvents.SERVER_STARTING.register(server ->
         {
-            DriveAPI.CREDENTIALS = new File(server.getServerDirectory(), "credentials.json");
+            DriveAPI.CREDENTIALS = new File(FabricLoader.getInstance().getConfigDir().toFile(), "ismpbackup/credentials.json");
+
+            if (!DriveAPI.CREDENTIALS.exists())
+            {
+                throw new RuntimeException("Couldn't find 'credentials.json' in the 'config/ismpbackup' folder!");
+            }
 
             try
             {
