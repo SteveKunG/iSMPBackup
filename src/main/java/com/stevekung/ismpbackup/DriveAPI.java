@@ -24,6 +24,7 @@ import com.google.api.services.drive.DriveScopes;
 import com.mojang.logging.LogUtils;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.Util;
 
 public class DriveAPI
 {
@@ -49,16 +50,26 @@ public class DriveAPI
 
     public static void init() throws IOException
     {
+        LOGGER.info("Initializing Google Drive API");
         DRIVE = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials()).setApplicationName(APPLICATION_NAME).build();
-        LOGGER.info("Initializing credentials");
     }
 
     private static Credential getCredentials() throws IOException
     {
+        LOGGER.info("Initializing credentials");
         var clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(new FileInputStream(CREDENTIALS)));
         var flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, Collections.singletonList(DriveScopes.DRIVE_FILE)).setDataStoreFactory(new FileDataStoreFactory(new File(FabricLoader.getInstance().getConfigDir().toFile(), "ismpbackup"))).setAccessType("offline").build();
         var receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        var credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        var credential = new AuthorizationCodeInstalledApp(flow, receiver, new DriveBrowser()).authorize("user");
         return credential;
+    }
+
+    private static class DriveBrowser implements AuthorizationCodeInstalledApp.Browser
+    {
+        @Override
+        public void browse(String url) throws IOException
+        {
+            Util.getPlatform().openUri(url);
+        }
     }
 }

@@ -8,6 +8,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -23,16 +24,20 @@ import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.StringUtil;
 
 public class BackupUtils
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("MM-dd-yy");
+    public static final ExecutorService BACKUP_EXECUTOR = Util.makeExecutor("iSMPBackup");
+    private static final ExecutorService UPLOAD_EXECUTOR = Util.makeExecutor("iSMPBackupUpload");
+    public static File BACKUP_FILE;
 
-    public static File backup(MinecraftServer server, boolean latest)
+    public static File backup(MinecraftServer server, String name)
     {
         var levelId = "iSMP";
-        var fileName = "iSMP_" + (latest ? "latest" : LocalDateTime.now().format(FORMATTER));
+        var fileName = "iSMP_" + (!StringUtil.isNullOrEmpty(name) && !name.equals("date") ? name : LocalDateTime.now().format(FORMATTER));
         var serverPath = server.getServerDirectory().toPath();
         var levelPath = serverPath.resolve(levelId);
 
@@ -75,7 +80,7 @@ public class BackupUtils
 
     public static void upload(MinecraftServer server, File toUpload)
     {
-        Util.backgroundExecutor().execute(() ->
+        UPLOAD_EXECUTOR.execute(() ->
         {
             LOGGER.info("Start uploading map backup: {}", toUpload.getName());
             var mapBackupFolderId = "1f6BrIKWkqCMJ-iobaolP3wWD42pdaqR3";

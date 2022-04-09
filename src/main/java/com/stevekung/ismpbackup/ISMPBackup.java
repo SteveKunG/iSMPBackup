@@ -24,6 +24,7 @@ public class ISMPBackup implements DedicatedServerModInitializer
         CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) ->
         {
             IBackupCommand.register(dispatcher);
+            IUploadCommand.register(dispatcher);
         });
 
         ServerLifecycleEvents.SERVER_STARTING.register(server ->
@@ -56,10 +57,10 @@ public class ISMPBackup implements DedicatedServerModInitializer
 
                 if (saturday && midnight)
                 {
-                    BackupUtils.upload(server, BackupUtils.backup(server, false));
+                    BackupUtils.upload(server, BackupUtils.backup(server, null));
                 }
             },
-            5L, TimeUnit.SECONDS.convert(1, TimeUnit.DAYS), TimeUnit.SECONDS);
+            5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> BACKUP_SCHEDULE.shutdownNow());
