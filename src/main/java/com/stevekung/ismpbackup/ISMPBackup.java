@@ -57,10 +57,9 @@ public class ISMPBackup implements DedicatedServerModInitializer
 
                 if (saturday && midnight)
                 {
-                    BackupUtils.upload(server, BackupUtils.backup(server, null));
+                    BackupUtils.upload(server, BackupUtils.backup(server, null), true);
                 }
-            },
-            5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
+            }, 5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
         });
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> BACKUP_SCHEDULE.shutdownNow());

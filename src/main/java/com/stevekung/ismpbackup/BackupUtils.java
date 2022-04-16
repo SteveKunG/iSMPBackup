@@ -41,35 +41,43 @@ public class BackupUtils
         var serverPath = server.getServerDirectory().toPath();
         var levelPath = serverPath.resolve(levelId);
 
+        server.saveEverything(true, true, true);
+
         try
         {
             Files.createDirectories(Files.exists(serverPath) ? serverPath.toRealPath() : serverPath);
             var backupFile = serverPath.resolve(FileUtil.findAvailableName(serverPath, fileName, ".zip"));
-
             LOGGER.info("Starting map backup: {}", backupFile.getFileName());
 
-            try (var zipOutputStream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile)));)
+            BackupUtils.BACKUP_EXECUTOR.execute(() ->
             {
-                Files.walkFileTree(levelPath, new SimpleFileVisitor<>()
+                try (var zipOutputStream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile)));)
                 {
-                    @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                    Files.walkFileTree(levelPath, new SimpleFileVisitor<>()
                     {
-                        if (path.endsWith("session.lock"))
+                        @Override
+                        public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
                         {
+                            if (path.endsWith("session.lock"))
+                            {
+                                return FileVisitResult.CONTINUE;
+                            }
+                            var string = Paths.get(levelId).resolve(levelPath.relativize(path)).toString().replace('\\', '/');
+                            LOGGER.info("Zipping file: {}", string);
+                            var zipEntry = new ZipEntry(string);
+                            zipOutputStream.putNextEntry(zipEntry);
+                            com.google.common.io.Files.asByteSource(path.toFile()).copyTo(zipOutputStream);
+                            zipOutputStream.closeEntry();
                             return FileVisitResult.CONTINUE;
                         }
-                        var string = Paths.get(levelId).resolve(levelPath.relativize(path)).toString().replace('\\', '/');
-                        LOGGER.info("Zipping file: {}", string);
-                        var zipEntry = new ZipEntry(string);
-                        zipOutputStream.putNextEntry(zipEntry);
-                        com.google.common.io.Files.asByteSource(path.toFile()).copyTo(zipOutputStream);
-                        zipOutputStream.closeEntry();
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            }
-            LOGGER.info("Successfully created map backup: {}", backupFile.getFileName());
+                    });
+                    LOGGER.info("Successfully created map backup: {}", backupFile.getFileName());
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            });
             return backupFile.toFile();
         }
         catch (IOException e)
@@ -78,7 +86,7 @@ public class BackupUtils
         }
     }
 
-    public static void upload(MinecraftServer server, File toUpload)
+    public static void upload(MinecraftServer server, File toUpload, boolean delete)
     {
         UPLOAD_EXECUTOR.execute(() ->
         {
@@ -94,6 +102,11 @@ public class BackupUtils
                 DriveAPI.DRIVE.files().create(fileMetadata, mediaContent).setFields("id, parents").execute();
                 var component = new TextComponent("[Backup] ").setStyle(Style.EMPTY.applyFormats(ChatFormatting.YELLOW, ChatFormatting.BOLD)).append(new TextComponent(toUpload.getName() + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
                 server.getPlayerList().broadcastMessage(component, ChatType.SYSTEM, Util.NIL_UUID);
+
+                if (delete)
+                {
+                    toUpload.delete();
+                }
             }
             catch (IOException e)
             {

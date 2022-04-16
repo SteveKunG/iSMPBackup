@@ -20,7 +20,7 @@ public class IUploadCommand
     private static int upload(CommandContext<CommandSourceStack> commandContext, String name)
     {
         var server = commandContext.getSource().getServer();
-        BackupUtils.upload(server, BackupUtils.BACKUP_FILE);
+        BackupUtils.upload(server, BackupUtils.BACKUP_FILE, false);
         return 1;
     }
 }

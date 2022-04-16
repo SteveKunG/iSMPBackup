@@ -29,7 +29,7 @@ import net.minecraft.Util;
 public class DriveAPI
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final String APPLICATION_NAME = "iSMP Drive Backup";
+    private static final String APPLICATION_NAME = "iSMP Backup";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static NetHttpTransport HTTP_TRANSPORT;
 
@@ -60,8 +60,7 @@ public class DriveAPI
         var clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(new FileInputStream(CREDENTIALS)));
         var flow = new GoogleAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, Collections.singletonList(DriveScopes.DRIVE_FILE)).setDataStoreFactory(new FileDataStoreFactory(new File(FabricLoader.getInstance().getConfigDir().toFile(), "ismpbackup"))).setAccessType("offline").build();
         var receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        var credential = new AuthorizationCodeInstalledApp(flow, receiver, new DriveBrowser()).authorize("user");
-        return credential;
+        return new AuthorizationCodeInstalledApp(flow, receiver, new DriveBrowser()).authorize("user");
     }
 
     private static class DriveBrowser implements AuthorizationCodeInstalledApp.Browser
