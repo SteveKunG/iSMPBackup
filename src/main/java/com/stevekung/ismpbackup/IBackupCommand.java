@@ -21,7 +21,7 @@ public class IBackupCommand
     private static int backup(CommandContext<CommandSourceStack> commandContext, String name)
     {
         var server = commandContext.getSource().getServer();
-        BackupUtils.BACKUP_EXECUTOR.execute(() -> BackupUtils.BACKUP_FILE = BackupUtils.backup(server, name));
+        BackupUtils.EXECUTOR.execute(() -> BackupUtils.backup(server, name));
         return 1;
     }
 }

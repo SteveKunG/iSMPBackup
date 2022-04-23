@@ -14,6 +14,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 
+import com.google.api.client.googleapis.media.MediaHttpUploader;
+import com.google.api.client.googleapis.media.MediaHttpUploaderProgressListener;
 import com.google.api.client.http.FileContent;
 import com.mojang.logging.LogUtils;
 
@@ -30,9 +32,7 @@ public class BackupUtils
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("MM-dd-yy");
-    public static final ExecutorService BACKUP_EXECUTOR = Util.makeExecutor("iSMPBackup");
-    private static final ExecutorService UPLOAD_EXECUTOR = Util.makeExecutor("iSMPBackupUpload");
-    public static File BACKUP_FILE;
+    public static final ExecutorService EXECUTOR = Util.makeExecutor("iSMPBackup");
 
     public static File backup(MinecraftServer server, String name)
     {
@@ -47,37 +47,34 @@ public class BackupUtils
         {
             Files.createDirectories(Files.exists(serverPath) ? serverPath.toRealPath() : serverPath);
             var backupFile = serverPath.resolve(FileUtil.findAvailableName(serverPath, fileName, ".zip"));
-            LOGGER.info("Starting map backup: {}", backupFile.getFileName());
+            LOGGER.info("Starting map backup task: {}", backupFile.getFileName());
 
-            BackupUtils.BACKUP_EXECUTOR.execute(() ->
+            try (var zipOutputStream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile)));)
             {
-                try (var zipOutputStream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile)));)
+                Files.walkFileTree(levelPath, new SimpleFileVisitor<>()
                 {
-                    Files.walkFileTree(levelPath, new SimpleFileVisitor<>()
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
                     {
-                        @Override
-                        public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException
+                        if (path.endsWith("session.lock"))
                         {
-                            if (path.endsWith("session.lock"))
-                            {
-                                return FileVisitResult.CONTINUE;
-                            }
-                            var string = Paths.get(levelId).resolve(levelPath.relativize(path)).toString().replace('\\', '/');
-                            LOGGER.info("Zipping file: {}", string);
-                            var zipEntry = new ZipEntry(string);
-                            zipOutputStream.putNextEntry(zipEntry);
-                            com.google.common.io.Files.asByteSource(path.toFile()).copyTo(zipOutputStream);
-                            zipOutputStream.closeEntry();
                             return FileVisitResult.CONTINUE;
                         }
-                    });
-                    LOGGER.info("Successfully created map backup: {}", backupFile.getFileName());
-                }
-                catch (IOException e)
-                {
-                    e.printStackTrace();
-                }
-            });
+                        var string = Paths.get(levelId).resolve(levelPath.relativize(path)).toString().replace('\\', '/');
+                        LOGGER.info("Zipping file: {}", string);
+                        var zipEntry = new ZipEntry(string);
+                        zipOutputStream.putNextEntry(zipEntry);
+                        com.google.common.io.Files.asByteSource(path.toFile()).copyTo(zipOutputStream);
+                        zipOutputStream.closeEntry();
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+                LOGGER.info("Successfully created map backup: {}", backupFile.getFileName());
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
             return backupFile.toFile();
         }
         catch (IOException e)
@@ -88,19 +85,26 @@ public class BackupUtils
 
     public static void upload(MinecraftServer server, File toUpload, boolean delete)
     {
-        UPLOAD_EXECUTOR.execute(() ->
+        EXECUTOR.execute(() ->
         {
-            LOGGER.info("Start uploading map backup: {}", toUpload.getName());
+            var fileName = toUpload.getName();
+            LOGGER.info("Start uploading map backup: {}", fileName);
             var mapBackupFolderId = "1f6BrIKWkqCMJ-iobaolP3wWD42pdaqR3";
             var fileMetadata = new com.google.api.services.drive.model.File();
-            fileMetadata.setName(toUpload.getName());
+            fileMetadata.setName(fileName);
             fileMetadata.setParents(Collections.singletonList(mapBackupFolderId));
             var mediaContent = new FileContent(null, toUpload);
 
             try
             {
-                DriveAPI.DRIVE.files().create(fileMetadata, mediaContent).setFields("id, parents").execute();
-                var component = new TextComponent("[Backup] ").setStyle(Style.EMPTY.applyFormats(ChatFormatting.YELLOW, ChatFormatting.BOLD)).append(new TextComponent(toUpload.getName() + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
+                var toDriveFile = DriveAPI.DRIVE.files().create(fileMetadata, mediaContent).setFields("id, parents");
+                var uploader = toDriveFile.getMediaHttpUploader();
+
+                uploader.setDirectUploadEnabled(false);
+                uploader.setProgressListener(new FileUploadProgressListener(fileName));
+
+                toDriveFile.execute();
+                var component = new TextComponent("[Backup] ").setStyle(Style.EMPTY.applyFormats(ChatFormatting.YELLOW, ChatFormatting.BOLD)).append(new TextComponent(fileName + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
                 server.getPlayerList().broadcastMessage(component, ChatType.SYSTEM, Util.NIL_UUID);
 
                 if (delete)
@@ -113,5 +117,38 @@ public class BackupUtils
                 e.printStackTrace();
             }
         });
+    }
+
+    static class FileUploadProgressListener implements MediaHttpUploaderProgressListener
+    {
+        private final String fileName;
+
+        FileUploadProgressListener(String fileName)
+        {
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void progressChanged(MediaHttpUploader mediaHttpUploader) throws IOException
+        {
+            switch (mediaHttpUploader.getUploadState())
+            {
+                case MEDIA_IN_PROGRESS:
+                    if (Util.getMillis() % 2L == 0)
+                    {
+                        var percent = mediaHttpUploader.getProgress() * 100;
+                        LOGGER.info("'{}' upload to iSMP Drive: {}%", this.fileName, "%.1f".formatted(percent));
+                    }
+                    break;
+                case MEDIA_COMPLETE:
+                    LOGGER.info("'{}' has uploaded complete!", this.fileName);
+                    break;
+                case NOT_STARTED:
+                    LOGGER.info("Upload not yet started!");
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }

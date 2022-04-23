@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.TextComponent;
 
 public class IUploadCommand
 {
@@ -20,7 +21,18 @@ public class IUploadCommand
     private static int upload(CommandContext<CommandSourceStack> commandContext, String name)
     {
         var server = commandContext.getSource().getServer();
-        BackupUtils.upload(server, BackupUtils.BACKUP_FILE, false);
-        return 1;
+        var serverPath = server.getServerDirectory().toPath();
+        var file = serverPath.resolve(name + ".zip").toFile();
+
+        if (file.exists())
+        {
+            BackupUtils.upload(server, file, false);
+            return 1;
+        }
+        else
+        {
+            commandContext.getSource().sendFailure(new TextComponent("File '" + name + ".zip' not found, try again!"));
+            return 1;
+        }
     }
 }

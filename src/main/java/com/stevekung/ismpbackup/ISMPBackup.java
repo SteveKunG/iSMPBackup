@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -57,11 +58,16 @@ public class ISMPBackup implements DedicatedServerModInitializer
 
                 if (saturday && midnight)
                 {
-                    BackupUtils.upload(server, BackupUtils.backup(server, null), true);
+                    var file = CompletableFuture.supplyAsync(() -> BackupUtils.backup(server, "eieetest"), BackupUtils.EXECUTOR).join();
+                    BackupUtils.upload(server, file, true);
                 }
             }, 5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
         });
 
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> BACKUP_SCHEDULE.shutdownNow());
+        ServerLifecycleEvents.SERVER_STOPPING.register(server ->
+        {
+            BACKUP_SCHEDULE.shutdownNow();
+            BackupUtils.EXECUTOR.shutdownNow();
+        });
     }
 }
