@@ -26,7 +26,6 @@ import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.StringUtil;
 
 public class BackupUtils
 {
@@ -37,7 +36,7 @@ public class BackupUtils
     public static File backup(MinecraftServer server, String name)
     {
         var levelId = "iSMP";
-        var fileName = "iSMP_" + (!StringUtil.isNullOrEmpty(name) && !name.equals("date") ? name : LocalDateTime.now().format(FORMATTER));
+        var fileName = "iSMP_" + (name.equals("date") ? LocalDateTime.now().format(FORMATTER) : name);
         var serverPath = server.getServerDirectory().toPath();
         var levelPath = serverPath.resolve(levelId);
 

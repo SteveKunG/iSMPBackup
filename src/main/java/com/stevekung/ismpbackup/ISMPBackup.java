@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.ZoneId;
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,14 +51,13 @@ public class ISMPBackup implements DedicatedServerModInitializer
         {
             BACKUP_SCHEDULE.scheduleAtFixedRate(() ->
             {
-                var date = new Date();
-                var zdt = date.toInstant().atZone(ZoneId.of("Asia/Bangkok"));
+                var zdt = ZonedDateTime.now(ZoneId.of("Asia/Bangkok"));
                 var saturday = zdt.getDayOfWeek() == DayOfWeek.SATURDAY;
                 var midnight = zdt.getHour() == 0;
 
                 if (saturday && midnight)
                 {
-                    var file = CompletableFuture.supplyAsync(() -> BackupUtils.backup(server, "eieetest"), BackupUtils.EXECUTOR).join();
+                    var file = CompletableFuture.supplyAsync(() -> BackupUtils.backup(server, "date"), BackupUtils.EXECUTOR).join();
                     BackupUtils.upload(server, file, true);
                 }
             }, 5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
