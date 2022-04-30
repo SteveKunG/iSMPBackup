@@ -1,18 +1,11 @@
 # folder
-.cache
-.settings
 .gradle
-.idea
-.vscode
+.settings
 bin
 build
-libs
 run
 
 # file
-*.bat
 *.launch
-.metadata
 .classpath
 .project
-!gradlew.bat
