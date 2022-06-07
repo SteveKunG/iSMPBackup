@@ -6,7 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 
 public class IUploadCommand
 {
@@ -31,7 +31,7 @@ public class IUploadCommand
         }
         else
         {
-            commandContext.getSource().sendFailure(new TextComponent("File '" + name + ".zip' not found, try again!"));
+            commandContext.getSource().sendFailure(Component.literal("File '" + name + ".zip' not found, try again!"));
             return 1;
         }
     }
