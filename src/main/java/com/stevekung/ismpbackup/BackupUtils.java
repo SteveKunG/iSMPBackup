@@ -22,7 +22,6 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.FileUtil;
 import net.minecraft.Util;
-import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.MinecraftServer;
@@ -104,7 +103,7 @@ public class BackupUtils
 
                 toDriveFile.execute();
                 var component = Component.literal("[Backup] ").setStyle(Style.EMPTY.applyFormats(ChatFormatting.YELLOW, ChatFormatting.BOLD)).append(Component.literal(fileName + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
-                server.getPlayerList().broadcastSystemMessage(component, ChatType.SYSTEM);
+                server.getPlayerList().broadcastSystemMessage(component, false);
 
                 if (delete)
                 {
