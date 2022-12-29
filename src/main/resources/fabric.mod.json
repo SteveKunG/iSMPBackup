@@ -3,11 +3,11 @@
     "id": "ismpbackup",
     "version": "${version}",
     "name": "iSMPBackup",
-    "description": "Map Backup Helper",
+    "description": "Automatic Map Backup for iSMP Server",
     "authors": [
         "SteveKunG"
     ],
-    "license": "All rights reserved",
+    "license": "MIT",
     "environment": "server",
     "entrypoints": {
         "server": [
@@ -15,8 +15,8 @@
         ]
     },
     "depends": {
-        "fabricloader": ">=0.13.3",
-        "minecraft": ">=1.18.2"
+        "fabricloader": ">=0.14",
+        "minecraft": ">=1.19.2"
     },
     "accessWidener": "ismpbackup.accesswidener"
 }
