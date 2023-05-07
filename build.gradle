@@ -1,5 +1,6 @@
 plugins {
-    id "fabric-loom" version "0.12-SNAPSHOT"
+    id "fabric-loom" version "1.2-SNAPSHOT"
+    id "io.github.juuxel.loom-quiltflower" version "1.8.0"
 }
 
 sourceCompatibility = JavaVersion.VERSION_17
@@ -14,9 +15,9 @@ loom {
 
     runs {
         client {
-            programArgs "--username", "${username}", "--uuid", "${uuid}"
-            vmArg "-Dmixin.debug.export=true"
-            vmArg "-Dmixin.hotSwap=true"
+            property "mixin.debug.export", "true"
+            property "mixin.hotSwap", "true"
+            property "devauth.configDir", "${devauth_dir}"
         }
     }
 }
@@ -25,7 +26,14 @@ repositories {
     maven {
         name "ParchmentMC"
         url "https://maven.parchmentmc.org"
+        content {
+            includeGroup "org.parchmentmc.data"
+        }
     }
+}
+
+quiltflower {
+    quiltflowerVersion = "1.9.0"
 }
 
 configurations {
@@ -40,7 +48,7 @@ dependencies {
         parchment("org.parchmentmc.data:parchment-${parchmentmc_version}@zip")
     }
 
-    drive (group: "com.google.api-client", name: "google-api-client", version: project.api_client_version) {
+    drive(group: "com.google.api-client", name: "google-api-client", version: project.api_client_version) {
         exclude(group: "org.apache.httpcomponents")
         exclude(group: "commons-logging")
         exclude(group: "commons-codec")
@@ -51,7 +59,7 @@ dependencies {
         exclude(group: "com.google.j2objc")
         exclude(group: "org.checkerframework")
     }
-    drive (group: "com.google.oauth-client", name: "google-oauth-client-jetty", version: project.oauth_client_version) {
+    drive(group: "com.google.oauth-client", name: "google-oauth-client-jetty", version: project.oauth_client_version) {
         exclude(group: "org.apache.httpcomponents")
         exclude(group: "commons-logging")
         exclude(group: "commons-codec")
@@ -62,7 +70,7 @@ dependencies {
         exclude(group: "com.google.j2objc")
         exclude(group: "org.checkerframework")
     }
-    drive (group: "com.google.apis", name: "google-api-services-drive", version: project.drive_api_version) {
+    drive(group: "com.google.apis", name: "google-api-services-drive", version: project.drive_api_version) {
         exclude(group: "org.apache.httpcomponents")
         exclude(group: "commons-logging")
         exclude(group: "commons-codec")
