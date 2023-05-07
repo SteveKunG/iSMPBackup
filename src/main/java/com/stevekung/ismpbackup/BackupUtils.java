@@ -29,7 +29,7 @@ import net.minecraft.server.MinecraftServer;
 public class BackupUtils
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("MM-dd-yy");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final ExecutorService EXECUTOR = Util.makeExecutor("iSMPBackup");
 
     public static File backup(MinecraftServer server, String name)
