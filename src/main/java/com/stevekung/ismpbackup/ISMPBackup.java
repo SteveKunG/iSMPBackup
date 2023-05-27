@@ -55,7 +55,7 @@ public class ISMPBackup implements DedicatedServerModInitializer
                 var saturday = zdt.getDayOfWeek() == DayOfWeek.SATURDAY;
                 var midnight = zdt.getHour() == 0;
 
-                if (saturday && midnight)
+                if (saturday && midnight && zdt.getMinute() == 0)
                 {
                     var file = CompletableFuture.supplyAsync(() -> BackupUtils.backup(server, "date"), BackupUtils.EXECUTOR).join();
                     BackupUtils.upload(server, file, true);
