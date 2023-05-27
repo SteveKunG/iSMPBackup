@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -17,6 +19,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 public class ISMPBackup implements DedicatedServerModInitializer
 {
+    public static final BackupConfig CONFIG = AutoConfig.register(BackupConfig.class, GsonConfigSerializer::new).getConfig();
     private static final ScheduledExecutorService BACKUP_SCHEDULE = Executors.newScheduledThreadPool(1);
 
     @Override

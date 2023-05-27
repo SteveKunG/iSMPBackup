@@ -83,6 +83,11 @@ public class BackupUtils
 
     public static void upload(MinecraftServer server, File toUpload, boolean delete)
     {
+        if (!ISMPBackup.CONFIG.autoUpload)
+        {
+            return;
+        }
+
         EXECUTOR.execute(() ->
         {
             var fileName = toUpload.getName();
