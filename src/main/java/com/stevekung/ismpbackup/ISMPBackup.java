@@ -6,26 +6,29 @@ import java.time.DayOfWeek;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
+import com.mojang.logging.LogUtils;
 
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 
 public class ISMPBackup implements DedicatedServerModInitializer
 {
     public static final BackupConfig CONFIG = AutoConfig.register(BackupConfig.class, GsonConfigSerializer::new).getConfig();
-    private static final ScheduledExecutorService BACKUP_SCHEDULE = Executors.newScheduledThreadPool(1);
+    public static final Logger LOGGER = LogUtils.getLogger();
+    private static boolean backupStarted;
 
     @Override
     public void onInitializeServer()
     {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+        CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) ->
         {
             IBackupCommand.register(dispatcher);
             IUploadCommand.register(dispatcher);
@@ -50,26 +53,26 @@ public class ISMPBackup implements DedicatedServerModInitializer
             }
         });
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server ->
+        ServerTickEvents.START_SERVER_TICK.register(server ->
         {
-            BACKUP_SCHEDULE.scheduleAtFixedRate(() ->
-            {
-                var zdt = ZonedDateTime.now(ZoneId.of("Asia/Bangkok"));
-                var saturday = zdt.getDayOfWeek() == DayOfWeek.SATURDAY;
-                var midnight = zdt.getHour() == 0;
+            var zdt = ZonedDateTime.now(ZoneId.of("Asia/Bangkok"));
+            var localTime = zdt.toLocalTime();
 
-                if (saturday && midnight && zdt.getMinute() >= 0 && zdt.getMinute() <= 10)
+            if (!backupStarted && zdt.getDayOfWeek() == DayOfWeek.SATURDAY && localTime.getHour() == 0 && localTime.getMinute() == 0 && localTime.getSecond() == 0)
+            {
+                LOGGER.info("Backup started");
+                backupStarted = true;
+
+                BackupUtils.EXECUTOR.execute(() ->
                 {
                     var file = CompletableFuture.supplyAsync(() -> BackupUtils.backup(server, "date"), BackupUtils.EXECUTOR).join();
+                    backupStarted = false;
+                    LOGGER.info("Backup finished");
                     BackupUtils.upload(server, file, true);
-                }
-            }, 5L, TimeUnit.SECONDS.convert(1, TimeUnit.HOURS), TimeUnit.SECONDS);
+                });
+            }
         });
 
-        ServerLifecycleEvents.SERVER_STOPPING.register(server ->
-        {
-            BACKUP_SCHEDULE.shutdownNow();
-            BackupUtils.EXECUTOR.shutdownNow();
-        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> BackupUtils.EXECUTOR.shutdownNow());
     }
 }
