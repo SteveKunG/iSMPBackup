@@ -12,12 +12,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.slf4j.Logger;
-
 import com.google.api.client.googleapis.media.MediaHttpUploader;
 import com.google.api.client.googleapis.media.MediaHttpUploaderProgressListener;
 import com.google.api.client.http.FileContent;
-import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.FileUtil;
@@ -28,7 +25,6 @@ import net.minecraft.server.MinecraftServer;
 
 public class BackupUtils
 {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final ExecutorService EXECUTOR = Util.makeExecutor("iSMPBackup");
 
@@ -45,7 +41,7 @@ public class BackupUtils
         {
             Files.createDirectories(Files.exists(serverPath) ? serverPath.toRealPath() : serverPath);
             var backupFile = serverPath.resolve(FileUtil.findAvailableName(serverPath, fileName, ".zip"));
-            LOGGER.info("Starting map backup task: {}", backupFile.getFileName());
+            ISMPBackup.LOGGER.info("Starting backup task: {}", backupFile.getFileName());
 
             try (var zipOutputStream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile)));)
             {
@@ -59,7 +55,7 @@ public class BackupUtils
                             return FileVisitResult.CONTINUE;
                         }
                         var string = Paths.get(levelId).resolve(levelPath.relativize(path)).toString().replace('\\', '/');
-                        LOGGER.info("Zipping file: {}", string);
+                        ISMPBackup.LOGGER.info("Zipping file: {}", string);
                         var zipEntry = new ZipEntry(string);
                         zipOutputStream.putNextEntry(zipEntry);
                         com.google.common.io.Files.asByteSource(path.toFile()).copyTo(zipOutputStream);
@@ -67,7 +63,7 @@ public class BackupUtils
                         return FileVisitResult.CONTINUE;
                     }
                 });
-                LOGGER.info("Successfully created map backup: {}", backupFile.getFileName());
+                ISMPBackup.LOGGER.info("Backup successfully created at: {}", backupFile.getFileName());
             }
             catch (IOException e)
             {
@@ -91,7 +87,7 @@ public class BackupUtils
         EXECUTOR.execute(() ->
         {
             var fileName = toUpload.getName();
-            LOGGER.info("Start uploading map backup: {}", fileName);
+            ISMPBackup.LOGGER.info("Starting upload backup: {}", fileName);
             var mapBackupFolderId = "1f6BrIKWkqCMJ-iobaolP3wWD42pdaqR3";
             var fileMetadata = new com.google.api.services.drive.model.File();
             fileMetadata.setName(fileName);
@@ -107,8 +103,8 @@ public class BackupUtils
                 uploader.setProgressListener(new FileUploadProgressListener(fileName));
 
                 toDriveFile.execute();
-                var component = Component.literal("[Backup] ").setStyle(Style.EMPTY.applyFormats(ChatFormatting.YELLOW, ChatFormatting.BOLD)).append(Component.literal(fileName + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
-                server.getPlayerList().broadcastSystemMessage(component, false);
+                var component = Component.literal("[Backup] ").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD).append(Component.literal(fileName + " has been uploaded to iSMP Drive!").setStyle(Style.EMPTY.withBold(false).withColor(ChatFormatting.WHITE)));
+                server.getPlayerList().broadcastSystemMessage(component, true);
 
                 if (delete)
                 {
@@ -140,14 +136,14 @@ public class BackupUtils
                     if (Util.getMillis() % 2L == 0)
                     {
                         var percent = mediaHttpUploader.getProgress() * 100;
-                        LOGGER.info("'{}' upload to iSMP Drive: {}%", this.fileName, "%.1f".formatted(percent));
+                        ISMPBackup.LOGGER.info("'{}' upload to iSMP Drive: {}%", this.fileName, "%.1f".formatted(percent));
                     }
                     break;
                 case MEDIA_COMPLETE:
-                    LOGGER.info("'{}' has uploaded complete!", this.fileName);
+                    ISMPBackup.LOGGER.info("'{}' has uploaded complete!", this.fileName);
                     break;
                 case NOT_STARTED:
-                    LOGGER.info("Upload not yet started!");
+                    ISMPBackup.LOGGER.info("Upload not yet started!");
                     break;
                 default:
                     break;
